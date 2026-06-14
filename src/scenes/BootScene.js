@@ -6,7 +6,8 @@ export default class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // TODO: 從 manifest.json 讀取並載入所有圖片素材
+        // 未來可從 manifest.json 載入圖片素材
+        // 目前使用 Phaser 繪製的純色矩形作為佔位符
     }
 
     create() {
