@@ -35,6 +35,31 @@ const C = {
     TEXT_INFO:  '#88aaff',
 };
 
+// 狀態 ID → 紋理 key 對應表
+const STATUS_ICON_MAP = {
+    momentum:        'status_momentum',
+    silence:         'status_silence',
+    guilty:          'status_guilty',
+    blood_oath:      'status_blood_oath',
+    spore:           'status_spore',
+    frozen:          'status_frozen',
+    poisoned:        'status_poisoned',
+    scale_crack:     'status_scale_crack',
+    guardian_shield: 'status_shield',
+    dodge:           'status_dodge',
+    steadfast:       'status_steadfast',
+    fighting_spirit: 'status_fighting_spirit',
+    charge_ready:    'status_charge',
+    insight:         'status_insight',
+    recuperate:      'status_recuperate',
+    staggered:       'status_staggered',
+    blessed:         'status_blessed',
+    crown_shard:     'status_crown_shard',
+    exhausted:       'status_exhausted',
+    rust_crack:      'status_rust_crack',
+    weakened:        'status_exhausted',
+};
+
 export default class BattleScene extends Phaser.Scene {
     constructor() {
         super({ key: 'BattleScene' });
@@ -108,13 +133,18 @@ export default class BattleScene extends Phaser.Scene {
 
         // 計算本戰的 locked skill（skill_locked_random 需在套用時決定目標技能）
         this.lockedSkillId = null;
+        this.playerStatusIcons = [];
+        this.monsterStatusIcons = [];
     }
 
     // ── UI 建立 ──────────────────────────────────────────
 
     _createUI() {
         const W = 960, H = 640;
-        this.add.rectangle(W / 2, H / 2, W, H, C.BG);
+        const floorNum = typeof GameState.floor === 'number' ? GameState.floor : 3;
+        const bgKey = this.isBoss ? 'bg_boss' : `bg_level${floorNum}`;
+        this.add.image(W / 2, H / 2, bgKey).setDisplaySize(W, H);
+        this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.5);
 
         this._createHeader();
         this._createPlayerPanel();
@@ -145,9 +175,9 @@ export default class BattleScene extends Phaser.Scene {
         // 背景
         this.add.rectangle(210, 190, 400, 290, C.PANEL_P, 0.6).setStrokeStyle(1, C.BORDER_P);
 
-        // 立繪佔位符
-        this.add.rectangle(85, 190, 140, 200, 0x1a1a3a).setStrokeStyle(1, C.BORDER_P);
-        this.add.text(85, 190, '玩家', { fontSize: '13px', color: '#555577' }).setOrigin(0.5, 0.5);
+        // 玩家立繪
+        const charKey = `char_${GameState.playerClass}`;
+        this.add.image(85, 190, charKey).setDisplaySize(140, 200);
 
         // 名稱
         const name = { warrior: '戰士', mage: '法師', ranger: '遊俠' }[GameState.playerClass] || '';
@@ -183,14 +213,9 @@ export default class BattleScene extends Phaser.Scene {
     _createMonsterPanel() {
         this.add.rectangle(750, 190, 400, 290, C.PANEL_M, 0.6).setStrokeStyle(1, C.BORDER_M);
 
-        // 立繪佔位符
-        this.add.rectangle(875, 190, 140, 200, 0x2a1010).setStrokeStyle(1, C.BORDER_M);
-        this.monsterPortraitText = this.add.text(875, 190, '', {
-            fontSize: '12px',
-            color: '#775555',
-            align: 'center',
-            wordWrap: { width: 130 },
-        }).setOrigin(0.5, 0.5);
+        // 怪物立繪
+        const monsterKey = `monster_${this.monster.id}`;
+        this.monsterPortraitImg = this.add.image(875, 190, monsterKey).setDisplaySize(140, 200);
 
         // 名稱
         this.monsterNameText = this.add.text(540, 55, '', { fontSize: '18px', color: '#ff9999', fontFamily: 'serif', fontStyle: 'bold' });
@@ -237,7 +262,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     _createSkillPanel() {
-        this.add.rectangle(480, 447, 920, 74, 0x0f0f20, 0.8);
+        // action bar 圖作為技能列背景
+        this.add.image(480, 447, 'ui_action_bar').setDisplaySize(920, 74).setAlpha(0.8);
+        this.add.rectangle(480, 447, 920, 74, 0x0f0f20, 0.3);
         this.add.text(18, 413, '技能', { fontSize: '13px', color: '#8888cc' });
 
         const skills = GameState.skills;
@@ -251,20 +278,24 @@ export default class BattleScene extends Phaser.Scene {
             const x = startX + i * (btnW + gap) + btnW / 2;
             const y = 448;
 
-            const bg = this.add.rectangle(x, y, btnW, btnH, C.BTN)
+            const bg = this.add.rectangle(x, y, btnW, btnH, C.BTN, 0.75)
                 .setInteractive({ useHandCursor: true })
                 .setStrokeStyle(1, C.BORDER_P);
 
-            const nameText = this.add.text(x, y - 11, sx ? sx.name : skill.id, {
+            // 技能圖示（左側小圖）
+            const iconKey = `skill_${skill.id}`;
+            const iconImg = this.add.image(x - btnW / 2 + 18, y, iconKey).setDisplaySize(28, 28);
+
+            const nameText = this.add.text(x + 6, y - 11, sx ? sx.name : skill.id, {
                 fontSize: '13px',
                 color: C.TEXT_BODY,
                 align: 'center',
-                wordWrap: { width: btnW - 12 },
+                wordWrap: { width: btnW - 44 },
             }).setOrigin(0.5, 0.5);
 
             // 階段指示（Lv.2 / Lv.3）
             const stage = skill.stage || 1;
-            const enhText = this.add.text(x, y + 14, stage > 1 ? `Lv.${stage}` : '', {
+            const enhText = this.add.text(x + 6, y + 14, stage > 1 ? `Lv.${stage}` : '', {
                 fontSize: '10px',
                 color: '#aa88ff',
             }).setOrigin(0.5, 0.5);
@@ -273,7 +304,7 @@ export default class BattleScene extends Phaser.Scene {
             bg.on('pointerout', () => { if (bg.active && bg.input) bg.setFillStyle(C.BTN); });
             bg.on('pointerdown', () => this._onSkillClick(skill.id));
 
-            this.skillBtns.push({ bg, nameText, enhText, skillId: skill.id });
+            this.skillBtns.push({ bg, nameText, enhText, iconImg, skillId: skill.id });
         });
     }
 
@@ -286,13 +317,14 @@ export default class BattleScene extends Phaser.Scene {
             const x = 28 + i * 170 + 80;
             const y = 547;
             const bg = this.add.rectangle(x, y, 155, 50, C.BTN).setStrokeStyle(1, 0x554422);
-            const lbl = this.add.text(x, y, '（空）', {
+            const lbl = this.add.text(x + 12, y, '（空）', {
                 fontSize: '12px',
                 color: C.TEXT_DIM,
                 align: 'center',
-                wordWrap: { width: 145 },
+                wordWrap: { width: 100 },
             }).setOrigin(0.5, 0.5);
-            this.itemBtns.push({ bg, lbl, index: i });
+            // iconImg will be created/destroyed dynamically in _refreshItemButtons
+            this.itemBtns.push({ bg, lbl, iconImg: null, iconX: x - 55, iconY: y, index: i });
         }
         this._refreshItemButtons();
     }
@@ -339,10 +371,10 @@ export default class BattleScene extends Phaser.Scene {
         // 玩家狀態
         const pStatuses = getStatusNames(p);
         this.playerStatusText.setText(pStatuses.length > 0 ? '狀態：' + pStatuses.join('  ') : '');
+        this._refreshStatusIcons(p, 20, 298, this.playerStatusIcons);
 
         // 怪物
         this.monsterNameText.setText(m.name + (m.isBoss ? ' ★' : ''));
-        this.monsterPortraitText.setText(m.name);
         this.monsterHpText.setText(`HP: ${m.hp} / ${m.maxHp}`);
         this._updateHpBar(this.monsterHpBarFg, this.monsterHpBarMaxW, m.hp, m.maxHp, C.HP_RED);
 
@@ -354,10 +386,26 @@ export default class BattleScene extends Phaser.Scene {
         if (m.flags.hasCrownShards && m.crownShards > 0) mStatuses.push(`王冠碎片 ×${m.crownShards}`);
         if (m.flags.hasScaleArmor && hasStatus(m, 'scale_armor')) mStatuses.push('深淵鱗甲');
         this.monsterStatusText.setText(mStatuses.length > 0 ? '狀態：' + mStatuses.join('  ') : '');
+        this._refreshStatusIcons(m, 540, 298, this.monsterStatusIcons);
 
         // 技能按鈕啟用狀態
         this._refreshSkillButtons();
         this._refreshItemButtons();
+    }
+
+    _refreshStatusIcons(entity, startX, y, iconsArray) {
+        iconsArray.forEach(obj => obj.destroy());
+        iconsArray.length = 0;
+        if (!entity.statuses) return;
+        let offsetX = startX;
+        for (const [id, status] of Object.entries(entity.statuses)) {
+            const key = STATUS_ICON_MAP[id];
+            if (!key || !this.textures.exists(key)) continue;
+            const icon = this.add.image(offsetX, y, key).setDisplaySize(20, 20);
+            iconsArray.push(icon);
+            offsetX += 24;
+            if (offsetX > startX + 200) break;
+        }
     }
 
     _updateHpBar(bar, maxW, current, max, baseColor) {
@@ -368,7 +416,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     _refreshSkillButtons() {
-        this.skillBtns.forEach(({ bg, nameText, skillId }) => {
+        this.skillBtns.forEach(({ bg, nameText, iconImg, skillId }) => {
             const skillDef = SKILLS[skillId];
             const locked = !this.isPlayerTurn || isSkillLocked(this.player, skillId, skillDef);
             const missingReq = skillDef?.requireStatus && !hasStatus(this.player, skillDef.requireStatus);
@@ -376,9 +424,11 @@ export default class BattleScene extends Phaser.Scene {
             if (locked || missingReq) {
                 bg.setFillStyle(C.BTN_DIS).disableInteractive();
                 nameText.setAlpha(0.35);
+                if (iconImg) iconImg.setAlpha(0.25);
             } else {
                 bg.setFillStyle(C.BTN).setInteractive({ useHandCursor: true });
                 nameText.setAlpha(1);
+                if (iconImg) iconImg.setAlpha(1);
             }
         });
     }
@@ -387,8 +437,18 @@ export default class BattleScene extends Phaser.Scene {
         const items = GameState.items;
         const locked = areItemsLocked(this.player);
 
-        this.itemBtns.forEach(({ bg, lbl, index }) => {
+        this.itemBtns.forEach(btn => {
+            const { bg, lbl, iconX, iconY, index } = btn;
             const slot = items[index];
+
+            // 更新/重建圖示
+            if (btn.iconImg) { btn.iconImg.destroy(); btn.iconImg = null; }
+            if (slot) {
+                const iconKey = `item_${slot.itemId}`;
+                btn.iconImg = this.add.image(iconX, iconY, iconKey).setDisplaySize(32, 32);
+                btn.iconImg.setAlpha(slot && this.isPlayerTurn && !locked ? 1 : 0.35);
+            }
+
             if (slot && this.isPlayerTurn && !locked) {
                 lbl.setText(`${ITEMS[slot.itemId]?.name || slot.itemId}\n×${slot.count}`);
                 lbl.setColor('#ddaa88');

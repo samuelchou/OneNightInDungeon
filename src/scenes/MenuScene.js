@@ -23,33 +23,29 @@ export default class MenuScene extends Phaser.Scene {
     create() {
         const W = 960, H = 640;
 
-        // 背景
-        this.add.rectangle(W / 2, H / 2, W, H, 0x0d0d1a);
+        // 背景圖
+        this.add.image(W / 2, H / 2, 'bg_menu').setDisplaySize(W, H);
+        // 暗色疊層，讓文字可讀
+        this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.4);
 
-        // 標題
-        this.add.text(W / 2, 60, 'One Night in Dungeon', {
-            fontSize: '36px',
-            fontFamily: 'serif',
-            color: '#e8d5a3',
-            stroke: '#5533aa',
-            strokeThickness: 3,
-        }).setOrigin(0.5, 0.5);
+        // Logo
+        this.add.image(W / 2, 68, 'ui_logo').setDisplaySize(320, 72);
 
-        this.add.text(W / 2, 105, '選擇你的職業，開始地下城之夜', {
+        this.add.text(W / 2, 118, '選擇你的職業，開始地下城之夜', {
             fontSize: '16px',
             fontFamily: 'sans-serif',
-            color: '#888888',
+            color: '#aaaacc',
         }).setOrigin(0.5, 0.5);
 
         // 職業卡片
         const classes = ['warrior', 'mage', 'ranger'];
-        const cardW = 260, cardH = 380, gap = 30;
+        const cardW = 260, cardH = 430, gap = 30;
         const totalW = classes.length * cardW + (classes.length - 1) * gap;
         const startX = (W - totalW) / 2;
 
         classes.forEach((cls, i) => {
             const cx = startX + i * (cardW + gap) + cardW / 2;
-            const cy = 360;
+            const cy = 385;
             this._createClassCard(cx, cy, cardW, cardH, cls);
         });
 
@@ -80,21 +76,25 @@ export default class MenuScene extends Phaser.Scene {
         bg.on('pointerdown', () => this._selectClass(clsId));
 
         const top = cy - h / 2;
+        const portraitKey = `char_${clsId}`;
+
+        // 職業立繪
+        this.add.image(cx, top + 90, portraitKey).setDisplaySize(160, 160);
 
         // 職業名稱
-        this.add.text(cx, top + 30, cls.name, {
-            fontSize: '24px',
+        this.add.text(cx, top + 185, cls.name, {
+            fontSize: '22px',
             fontFamily: 'serif',
             color: col.title,
             fontStyle: 'bold',
         }).setOrigin(0.5, 0.5);
 
         // 分隔線
-        this.add.rectangle(cx, top + 50, w - 30, 1, col.border, 0.5);
+        this.add.rectangle(cx, top + 203, w - 30, 1, col.border, 0.5);
 
         // 流派說明
-        this.add.text(cx, top + 100, CLASS_PHILOSOPHY[clsId], {
-            fontSize: '12px',
+        this.add.text(cx, top + 238, CLASS_PHILOSOPHY[clsId], {
+            fontSize: '11px',
             fontFamily: 'sans-serif',
             color: '#cccccc',
             align: 'center',
@@ -103,7 +103,7 @@ export default class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5, 0.5);
 
         // 技能清單
-        this.add.text(cx, top + 185, '【技能】', {
+        this.add.text(cx, top + 295, '【技能】', {
             fontSize: '11px',
             color: col.title,
             fontFamily: 'sans-serif',
@@ -112,7 +112,7 @@ export default class MenuScene extends Phaser.Scene {
         cls.skills.forEach((skillId, idx) => {
             const skill = SKILLS[skillId];
             if (!skill) return;
-            this.add.text(cx, top + 205 + idx * 28, `· ${skill.name}`, {
+            this.add.text(cx, top + 313 + idx * 21, `· ${skill.name}`, {
                 fontSize: '12px',
                 color: '#aaaaaa',
                 fontFamily: 'sans-serif',

@@ -20,7 +20,8 @@ export default class RewardScene extends Phaser.Scene {
 
     create() {
         const W = 960, H = 640;
-        this.add.rectangle(W / 2, H / 2, W, H, 0x0d0d1a);
+        this.add.image(W / 2, H / 2, 'bg_menu').setDisplaySize(W, H);
+        this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.55);
 
         // 標題
         const title = this.escaped ? '逃跑獎勵' : '戰鬥獎勵';
@@ -70,14 +71,19 @@ export default class RewardScene extends Phaser.Scene {
 
     _createRewardCard(cx, cy, w, h, reward, index) {
         const col = CARD_COLORS[reward.type] || CARD_COLORS.item;
+        const frameKey = { skill_enhancement: 'ui_frame_skill', attribute_buff: 'ui_frame_attr', item: 'ui_frame_item' }[reward.type] || 'ui_frame_item';
 
-        const bg = this.add.rectangle(cx, cy, w, h, col.bg)
+        // 卡片底色（帶互動）
+        const bg = this.add.rectangle(cx, cy, w, h, col.bg, 0.85)
             .setInteractive({ useHandCursor: true })
             .setStrokeStyle(2, col.border);
 
-        bg.on('pointerover', () => bg.setStrokeStyle(3, col.border).setFillStyle(col.bg + 0x111111));
-        bg.on('pointerout', () => bg.setStrokeStyle(2, col.border).setFillStyle(col.bg));
+        bg.on('pointerover', () => { bg.setAlpha(1); bg.setStrokeStyle(3, col.border); });
+        bg.on('pointerout', () => { bg.setAlpha(0.85); bg.setStrokeStyle(2, col.border); });
         bg.on('pointerdown', () => this._selectReward(reward));
+
+        // 獎勵框架圖（疊在底色上）
+        this.add.image(cx, cy, frameKey).setDisplaySize(w, h).setAlpha(0.7);
 
         const top = cy - h / 2;
 
@@ -91,9 +97,16 @@ export default class RewardScene extends Phaser.Scene {
 
         this.add.rectangle(cx, top + 40, w - 20, 1, col.border, 0.5);
 
+        // 道具圖示（item 型）
+        if (reward.type === 'item' && reward.itemId) {
+            const iconKey = `item_${reward.itemId}`;
+            this.add.image(cx, top + 80, iconKey).setDisplaySize(64, 64);
+        }
+
         // 名稱 / 標題
         const labelText = reward.label || this._getRewardLabel(reward);
-        this.add.text(cx, top + 75, labelText, {
+        const nameY = (reward.type === 'item' && reward.itemId) ? top + 125 : top + 75;
+        this.add.text(cx, nameY, labelText, {
             fontSize: '15px',
             color: '#ffffff',
             fontFamily: 'serif',
@@ -105,7 +118,8 @@ export default class RewardScene extends Phaser.Scene {
 
         // 說明
         const descText = reward.desc || this._getRewardDesc(reward);
-        this.add.text(cx, cy + 20, descText, {
+        const descY = (reward.type === 'item' && reward.itemId) ? cy + 40 : cy + 20;
+        this.add.text(cx, descY, descText, {
             fontSize: '12px',
             color: '#cccccc',
             fontFamily: 'sans-serif',

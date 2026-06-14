@@ -13,9 +13,10 @@ export default class GameOverScene extends Phaser.Scene {
     create() {
         const W = 960, H = 640;
 
-        // 背景
-        const bgColor = this.victory ? 0x0d1a0d : 0x1a0d0d;
-        this.add.rectangle(W / 2, H / 2, W, H, bgColor);
+        // 背景圖 + 色調疊層
+        this.add.image(W / 2, H / 2, 'bg_result').setDisplaySize(W, H);
+        const overlayColor = this.victory ? 0x0a1a0a : 0x1a0a0a;
+        this.add.rectangle(W / 2, H / 2, W, H, overlayColor, 0.55);
 
         if (this.victory) {
             this._createVictoryScreen(W, H);
