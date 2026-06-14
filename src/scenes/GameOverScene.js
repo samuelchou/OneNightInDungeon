@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import GameState from '../state/GameState.js';
+import { createHelpButton } from '../ui/TutorialPopup.js';
 
 export default class GameOverScene extends Phaser.Scene {
     constructor() {
@@ -26,6 +27,8 @@ export default class GameOverScene extends Phaser.Scene {
 
         // 統計數字
         this._createStats(W, H);
+
+        createHelpButton(this);
 
         // 再玩一次按鈕
         this._createReplayButton(W, H);

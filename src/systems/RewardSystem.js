@@ -39,7 +39,7 @@ export function generateEscapeReward(floor) {
 // ── 技能加成（升階系統）──────────────────────────────────
 
 // 每個技能各階段的效果描述（升至該階段時顯示）
-const SKILL_STAGE_DESCS = {
+export const SKILL_STAGE_DESCS = {
     // 戰士
     momentum_slash: {
         2: '傷害倍率提升至 ×1.5。',

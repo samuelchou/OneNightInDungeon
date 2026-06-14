@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import GameState from '../state/GameState.js';
 import { SKILLS } from '../data/skills.js';
 import { ITEMS } from '../data/items.js';
+import { SKILL_STAGE_DESCS } from '../systems/RewardSystem.js';
+import { showInfoPopup, createInfoButton } from '../ui/InfoPopup.js';
+import { createHelpButton } from '../ui/TutorialPopup.js';
 import { STATUS_DEFS, applyStatus, removeStatus, hasStatus, tickStatuses, clearBattleStatuses, getStatusNames } from '../systems/StatusSystem.js';
 import {
     executeAttack, applyDamage, applyHeal, rollEscape,
@@ -154,6 +157,7 @@ export default class BattleScene extends Phaser.Scene {
         this._createItemPanel();
         this._createFleeButton();
         this._createPhaseIndicator();
+        createHelpButton(this);
     }
 
     _createHeader() {
@@ -304,6 +308,11 @@ export default class BattleScene extends Phaser.Scene {
             bg.on('pointerout', () => { if (bg.active && bg.input) bg.setFillStyle(C.BTN); });
             bg.on('pointerdown', () => this._onSkillClick(skill.id));
 
+            // [i] 按鈕（右上角，不受鎖定影響）
+            createInfoButton(this, x + btnW / 2 - 10, y - btnH / 2 + 10,
+                () => this._showSkillInfo(skill.id),
+            );
+
             this.skillBtns.push({ bg, nameText, enhText, iconImg, skillId: skill.id });
         });
     }
@@ -323,8 +332,13 @@ export default class BattleScene extends Phaser.Scene {
                 align: 'center',
                 wordWrap: { width: 100 },
             }).setOrigin(0.5, 0.5);
+            // [i] 按鈕（右上角，點擊後顯示道具說明）
+            const infoBtn = createInfoButton(this, x + 155 / 2 - 10, y - 50 / 2 + 10,
+                () => this._showItemInfo(i),
+            );
+
             // iconImg will be created/destroyed dynamically in _refreshItemButtons
-            this.itemBtns.push({ bg, lbl, iconImg: null, iconX: x - 55, iconY: y, index: i });
+            this.itemBtns.push({ bg, lbl, iconImg: null, iconX: x - 55, iconY: y, infoBtn, index: i });
         }
         this._refreshItemButtons();
     }
@@ -467,6 +481,51 @@ export default class BattleScene extends Phaser.Scene {
                 lbl.setText('（空）').setColor(C.TEXT_DIM);
                 bg.setFillStyle(C.BTN_DIS).disableInteractive();
             }
+        });
+    }
+
+    // ── 資訊彈窗 ──────────────────────────────────────────
+
+    _showSkillInfo(skillId) {
+        const skill = SKILLS[skillId];
+        if (!skill) return;
+        const skillState = GameState.skills.find(s => s.id === skillId);
+        const currentStage = skillState?.stage || 1;
+        const stageDescs = SKILL_STAGE_DESCS[skillId] || {};
+        const sections = [
+            {
+                lines: [{ text: skill.description }],
+            },
+        ];
+        if (stageDescs[2] || stageDescs[3]) {
+            sections.push({
+                header: `升階效果（目前 Lv.${currentStage}）`,
+                lines: [
+                    { text: `Lv.2：${stageDescs[2] || '—'}`, color: currentStage >= 2 ? '#ffdd88' : '#666688' },
+                    { text: `Lv.3：${stageDescs[3] || '—'}`, color: currentStage >= 3 ? '#ffdd88' : '#666688' },
+                ],
+            });
+        }
+        showInfoPopup(this, { title: skill.name, iconKey: `skill_${skillId}`, sections });
+    }
+
+    _showItemInfo(slotIndex) {
+        const slot = GameState.items[slotIndex];
+        if (!slot) return;
+        const item = ITEMS[slot.itemId];
+        if (!item) return;
+        const typeLabel = { heal: '回復', damage: '傷害', status: '狀態', stat_boost: '屬性' }[item.type] || item.type;
+        showInfoPopup(this, {
+            title: item.name,
+            iconKey: `item_${slot.itemId}`,
+            sections: [
+                {
+                    lines: [
+                        { text: item.description || '—' },
+                        { text: `類型：${typeLabel}　持有：×${slot.count}`, color: '#888888' },
+                    ],
+                },
+            ],
         });
     }
 

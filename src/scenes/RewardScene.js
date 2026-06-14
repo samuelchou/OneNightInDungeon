@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
 import GameState from '../state/GameState.js';
 import { ITEMS } from '../data/items.js';
-import { generateVictoryRewards, generateEscapeReward } from '../systems/RewardSystem.js';
+import { SKILLS } from '../data/skills.js';
+import { generateVictoryRewards, generateEscapeReward, SKILL_STAGE_DESCS } from '../systems/RewardSystem.js';
+import { showInfoPopup, createInfoButton } from '../ui/InfoPopup.js';
+import { createHelpButton } from '../ui/TutorialPopup.js';
 
 const CARD_COLORS = {
     skill_enhancement: { bg: 0x1a1a3a, border: 0x7755dd, label: '#aa88ff' },
@@ -64,6 +67,8 @@ export default class RewardScene extends Phaser.Scene {
             const cx = startX + i * (cardW + gap) + cardW / 2;
             this._createRewardCard(cx, H / 2 + 20, cardW, cardH, reward, i);
         });
+
+        createHelpButton(this);
 
         // 道具欄提示
         this._createInventoryHint(W, H);
@@ -128,6 +133,11 @@ export default class RewardScene extends Phaser.Scene {
             lineSpacing: 5,
         }).setOrigin(0.5, 0.5);
 
+        // [i] 按鈕（右上角）
+        createInfoButton(this, cx + w / 2 - 14, cy - h / 2 + 14,
+            () => this._showRewardInfo(reward),
+        );
+
         // 選擇按鈕
         const btnY = cy + h / 2 - 26;
         const btnBg = this.add.rectangle(cx, btnY, w - 16, 34, col.border, 0.2)
@@ -141,6 +151,43 @@ export default class RewardScene extends Phaser.Scene {
         btnBg.on('pointerover', () => btnBg.setFillStyle(col.border, 0.5));
         btnBg.on('pointerout', () => btnBg.setFillStyle(col.border, 0.2));
         btnBg.on('pointerdown', () => this._selectReward(reward));
+    }
+
+    _showRewardInfo(reward) {
+        if (reward.type === 'item' && reward.itemId) {
+            const item = ITEMS[reward.itemId];
+            if (!item) return;
+            const typeLabel = { heal: '回復', damage: '傷害', status: '狀態', stat_boost: '屬性' }[item.type] || item.type;
+            showInfoPopup(this, {
+                title: item.name,
+                iconKey: `item_${reward.itemId}`,
+                sections: [{
+                    lines: [
+                        { text: item.description || '—' },
+                        { text: `類型：${typeLabel}`, color: '#888888' },
+                    ],
+                }],
+            });
+        } else if (reward.type === 'skill_enhancement' && reward.skillId) {
+            const skill = SKILLS[reward.skillId];
+            const stageDescs = SKILL_STAGE_DESCS[reward.skillId] || {};
+            showInfoPopup(this, {
+                title: `強化「${reward.skillId ? skill?.name : '？'}」`,
+                iconKey: `skill_${reward.skillId}`,
+                sections: [
+                    { lines: [{ text: skill?.description || '—' }] },
+                    {
+                        header: `升至 Lv.${reward.targetStage} 的效果`,
+                        lines: [{ text: stageDescs[reward.targetStage] || reward.desc || '—', color: '#aa88ff' }],
+                    },
+                ],
+            });
+        } else if (reward.type === 'attribute_buff') {
+            showInfoPopup(this, {
+                title: reward.label || '屬性加成',
+                sections: [{ lines: [{ text: reward.desc || '—' }] }],
+            });
+        }
     }
 
     _getRewardLabel(reward) {
