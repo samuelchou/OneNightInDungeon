@@ -1,0 +1,24 @@
+{
+    "characters": {
+        "warrior": "assets/characters/warrior.png",
+        "mage": "assets/characters/mage.png",
+        "ranger": "assets/characters/ranger.png"
+    },
+    "monsters": {
+    },
+    "bosses": {
+    },
+    "ui": {
+        "skill_frame": "assets/ui/skill_frame.png",
+        "item_frame": "assets/ui/item_frame.png",
+        "reward_card": "assets/ui/reward_card.png",
+        "hp_bar_bg": "assets/ui/hp_bar_bg.png",
+        "hp_bar_fill": "assets/ui/hp_bar_fill.png"
+    },
+    "backgrounds": {
+        "floor_1": "assets/backgrounds/floor_1.png",
+        "floor_2": "assets/backgrounds/floor_2.png",
+        "floor_3": "assets/backgrounds/floor_3.png",
+        "boss": "assets/backgrounds/boss.png"
+    }
+}
